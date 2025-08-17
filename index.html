@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Weather App</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+  <div class="container">
+    <h1 class="heading">looking outside the window 👨‍💻</h1>
+
+    <div class="card">
+      <div class="search">
+        <input id="city-input" type="text" placeholder="Enter city" spellcheck="false" aria-label="Enter city name"/>
+        <button id="search-btn" aria-label="Search">
+          <img src="images/search.png" alt="Search"/>
+        </button>
+      </div>
+
+      <div class="loader" aria-live="polite" aria-busy="true"></div>
+      <div class="error" role="alert"><p>Invalid city name</p></div>
+
+      <div class="weather" aria-live="polite">
+        <img src="images/clear.png" class="weather-icon" alt="Weather icon"/>
+        <h1 class="temp">22°C</h1>
+        <h2 class="city">Hyderabad</h2>
+        <div class="details">
+          <div class="col">
+            <img src="images/humidity.png" alt="Humidity"/>
+            <div>
+              <p class="humidity">50%</p>
+              <p>humidity</p>
+            </div>
+          </div>
+          <div class="col">
+            <img src="images/wind.png" alt="Wind speed"/>
+            <div>
+              <p class="wind">5 km/h</p>
+              <p>wind</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div><!-- /.card -->
+  </div><!-- /.container -->
+
+  <script>
+    const apiKey = "5bba1bd77fc9bf1ebecfae9204fdee8a";
+    const apiUrl = "https://api.openweathermap.org/data/2.5/weather?units=metric&q=";
+
+    const searchBox = document.getElementById("city-input");
+    const searchBtn = document.getElementById("search-btn");
+    const loader = document.querySelector(".loader");
+    const errorBox = document.querySelector(".error");
+    const weatherCard = document.querySelector(".weather");
+    const weatherIcon = document.querySelector(".weather-icon");
+    const card = document.querySelector(".card");
+
+    const weatherStyles = {
+      Clouds:   { icon: "images/clouds.png",   bg: "linear-gradient(135deg, #bdc3c7, #2c3e50)" },
+      Clear:    { icon: "images/clear.png",    bg: "linear-gradient(135deg, #f6d365, #fda085)" },
+      Rain:     { icon: "images/rain.png",     bg: "linear-gradient(135deg, #00c6ff, #0072ff)" },
+      Drizzle:  { icon: "images/drizzle.png",  bg: "linear-gradient(135deg, #89f7fe, #66a6ff)" },
+      Mist:     { icon: "images/mist.png",     bg: "linear-gradient(135deg, #757f9a, #d7dde8)" },
+      Snow:     { icon: "images/snow.png",     bg: "linear-gradient(135deg, #83a4d4, #b6fbff)" },
+      Thunderstorm: { icon: "images/thunder.png", bg: "linear-gradient(135deg, #485563, #29323c)" },
+      Default:  { icon: "images/clear.png",    bg: "linear-gradient(135deg, #00feba, #5b548a)" }
+    };
+
+    function setVisibility({ loading = false, error = false, showWeather = false }) {
+      loader.style.display = loading ? "block" : "none";
+      errorBox.style.display = error ? "block" : "none";
+      weatherCard.style.display = showWeather ? "block" : "none";
+    }
+
+    async function checkWeather(city) {
+      if (!apiKey) {
+        alert("Please add a valid API key!");
+        return;
+      }
+      if (!city) return;
+
+      setVisibility({ loading: true, error: false, showWeather: false });
+
+      try {
+        const response = await fetch(`${apiUrl}${encodeURIComponent(city)}&appid=${apiKey}`);
+        if (!response.ok) throw new Error("City not found");
+
+        const data = await response.json();
+
+        document.querySelector(".city").textContent = data.name;
+        document.querySelector(".temp").textContent = Math.round(data.main.temp) + "°C";
+        document.querySelector(".humidity").textContent = data.main.humidity + "%";
+
+        // OpenWeather returns wind.speed in m/s for metric — convert to km/h
+        const windKmh = Math.round((data.wind?.speed || 0) * 3.6);
+        document.querySelector(".wind").textContent = `${windKmh} km/h`;
+
+        const main = data.weather?.[0]?.main || "Default";
+        const weatherType = weatherStyles[main] || weatherStyles.Default;
+        weatherIcon.src = weatherType.icon;
+        weatherIcon.alt = `${main} icon`;
+        card.style.background = weatherType.bg;
+
+        setVisibility({ loading: false, error: false, showWeather: true });
+      } catch {
+        setVisibility({ loading: false, error: true, showWeather: false });
+      }
+    }
+
+    searchBtn.addEventListener("click", () => {
+      const city = searchBox.value.trim();
+      checkWeather(city);
+    });
+
+    // Press Enter to search
+    searchBox.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") searchBtn.click();
+    });
+  </script>
+</body>
+</html>
